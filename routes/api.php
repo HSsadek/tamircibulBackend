@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ServiceProviderController;
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\AIChatController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,6 +18,9 @@ use App\Http\Controllers\Api\AdminController;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+
+Route::post('/ai/chat', [AIChatController::class, 'chat']);
 
 // Public routes
 Route::prefix('auth')->group(function () {
