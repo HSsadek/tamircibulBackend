@@ -42,14 +42,51 @@ class ServiceController extends Controller
                 $query->where('district', $request->district);
             }
 
-            // Search by name or description
+            // Search by name, description, or service type
             if ($request->search) {
-                $query->where(function($q) use ($request) {
-                    $q->where('company_name', 'like', '%' . $request->search . '%')
-                      ->orWhere('description', 'like', '%' . $request->search . '%')
-                      ->orWhereHas('user', function($userQuery) use ($request) {
-                          $userQuery->where('name', 'like', '%' . $request->search . '%');
+                $searchTerm = $request->search;
+                
+                // Service type mapping for Turkish search
+                $serviceTypeMapping = [
+                    'tesisatçı' => 'plumbing',
+                    'tesisatci' => 'plumbing',
+                    'tesisat' => 'plumbing',
+                    'elektrikçi' => 'electrical',
+                    'elektrikci' => 'electrical',
+                    'elektrik' => 'electrical',
+                    'temizlik' => 'cleaning',
+                    'temizlikçi' => 'cleaning',
+                    'temizlikci' => 'cleaning',
+                    'beyaz eşya' => 'appliance',
+                    'beyaz esya' => 'appliance',
+                    'beyazeşya' => 'appliance',
+                    'beyazesya' => 'appliance',
+                    'bilgisayar' => 'computer',
+                    'bilgisayarci' => 'computer',
+                    'bilgisayarcı' => 'computer',
+                    'telefon' => 'phone',
+                    'telefoncu' => 'phone',
+                    'telefoncı' => 'phone',
+                    'tamir' => 'other',
+                    'tamirci' => 'other',
+                    'tamircı' => 'other',
+                ];
+                
+                $query->where(function($q) use ($searchTerm, $serviceTypeMapping) {
+                    $q->where('company_name', 'like', '%' . $searchTerm . '%')
+                      ->orWhere('description', 'like', '%' . $searchTerm . '%')
+                      ->orWhereHas('user', function($userQuery) use ($searchTerm) {
+                          $userQuery->where('name', 'like', '%' . $searchTerm . '%');
                       });
+                    
+                    // Check if search term matches a service type
+                    $lowerSearchTerm = strtolower(trim($searchTerm));
+                    if (isset($serviceTypeMapping[$lowerSearchTerm])) {
+                        $q->orWhere('service_type', $serviceTypeMapping[$lowerSearchTerm]);
+                    }
+                    
+                    // Also check direct service type match
+                    $q->orWhere('service_type', 'like', '%' . $searchTerm . '%');
                 });
             }
 
