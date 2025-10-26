@@ -72,7 +72,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stats', [ServiceProviderController::class, 'getStats']);
         Route::post('/requests/{id}/accept', [ServiceProviderController::class, 'acceptRequest']);
         Route::post('/requests/{id}/complete', [ServiceProviderController::class, 'completeRequest']);
+        Route::get('/profile', [ServiceProviderController::class, 'getProfile']);
         Route::put('/profile', [ServiceProviderController::class, 'updateProfile']);
+        Route::post('/profile/logo', [ServiceProviderController::class, 'uploadLogo']);
+        Route::delete('/profile/logo', [ServiceProviderController::class, 'deleteLogo']);
     });
 });
 

@@ -8,6 +8,7 @@ use App\Models\ServiceRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 
 class ServiceProviderController extends Controller
 {
@@ -234,9 +235,11 @@ class ServiceProviderController extends Controller
                 'city' => 'sometimes|string|max:100',
                 'district' => 'sometimes|string|max:100',
                 'address' => 'sometimes|string',
+                'phone' => 'sometimes|string|max:20',
                 'latitude' => 'sometimes|numeric',
                 'longitude' => 'sometimes|numeric',
                 'working_hours' => 'sometimes|string',
+                'logo' => 'sometimes|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
 
             if ($validator->fails()) {
@@ -248,9 +251,22 @@ class ServiceProviderController extends Controller
             }
 
             $serviceProvider = $user->serviceProvider;
+            
+            // Handle logo upload
+            if ($request->hasFile('logo')) {
+                // Delete old logo if exists
+                if ($serviceProvider->logo) {
+                    Storage::disk('public')->delete($serviceProvider->logo);
+                }
+                
+                $logoPath = $request->file('logo')->store('logos', 'public');
+                $serviceProvider->logo = $logoPath;
+            }
+            
+            // Update other fields
             $serviceProvider->update($request->only([
                 'company_name', 'description', 'city', 'district', 
-                'address', 'latitude', 'longitude', 'working_hours'
+                'address', 'phone', 'latitude', 'longitude', 'working_hours'
             ]));
 
             return response()->json([
@@ -263,6 +279,131 @@ class ServiceProviderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update profile',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get service provider profile
+     */
+    public function getProfile(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user->isServiceProvider()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Service provider role required.'
+                ], 403);
+            }
+
+            $serviceProvider = $user->serviceProvider;
+
+            return response()->json([
+                'success' => true,
+                'data' => $serviceProvider
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch profile',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload logo
+     */
+    public function uploadLogo(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user->isServiceProvider()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Service provider role required.'
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'logo' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $serviceProvider = $user->serviceProvider;
+            
+            // Delete old logo if exists
+            if ($serviceProvider->logo) {
+                Storage::disk('public')->delete($serviceProvider->logo);
+            }
+            
+            // Store new logo
+            $logoPath = $request->file('logo')->store('logos', 'public');
+            $serviceProvider->logo = $logoPath;
+            $serviceProvider->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Logo uploaded successfully',
+                'data' => [
+                    'logo' => $logoPath,
+                    'logo_url' => Storage::url($logoPath)
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload logo',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete logo
+     */
+    public function deleteLogo(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user->isServiceProvider()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Service provider role required.'
+                ], 403);
+            }
+
+            $serviceProvider = $user->serviceProvider;
+            
+            if ($serviceProvider->logo) {
+                Storage::disk('public')->delete($serviceProvider->logo);
+                $serviceProvider->logo = null;
+                $serviceProvider->save();
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Logo deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete logo',
                 'error' => $e->getMessage()
             ], 500);
         }
