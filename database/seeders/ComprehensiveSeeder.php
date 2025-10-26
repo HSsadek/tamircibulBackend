@@ -249,6 +249,85 @@ class ComprehensiveSeeder extends Seeder
             ]);
         }
 
+        // Create fixed test service provider accounts
+        $testProviders = [
+            [
+                'name' => 'Fatma Elektrik',
+                'email' => 'fatma.elektrik@example.com',
+                'phone' => '05551234501',
+                'company_name' => 'Fatma Elektrik Servisi',
+                'service_type' => 'electrical',
+                'description' => 'Profesyonel elektrik tamiri ve montaj hizmetleri.',
+                'city' => 'İstanbul',
+                'district' => 'Kadıköy',
+                'address' => 'Kadıköy Merkez, Test Sokak No:1',
+                'working_hours' => '08:00-18:00',
+                'rating' => 4.8,
+                'total_reviews' => 50,
+                'total_jobs' => 75,
+            ],
+            [
+                'name' => 'Hasan Temizlik',
+                'email' => 'hasan.temizlik@example.com',
+                'phone' => '05551234502',
+                'company_name' => 'Hasan Temizlik Hizmetleri',
+                'service_type' => 'cleaning',
+                'description' => 'Ev ve ofis temizlik hizmetleri.',
+                'city' => 'İstanbul',
+                'district' => 'Beşiktaş',
+                'address' => 'Beşiktaş Merkez, Test Sokak No:2',
+                'working_hours' => '09:00-17:00',
+                'rating' => 4.5,
+                'total_reviews' => 30,
+                'total_jobs' => 45,
+            ],
+            [
+                'name' => 'Ali Tesisat',
+                'email' => 'service@example.com',
+                'phone' => '05551234503',
+                'company_name' => 'Ali Tesisatçılık',
+                'service_type' => 'plumbing',
+                'description' => 'Tesisat tamiri ve montaj hizmetleri.',
+                'city' => 'İstanbul',
+                'district' => 'Şişli',
+                'address' => 'Şişli Merkez, Test Sokak No:3',
+                'working_hours' => '08:00-19:00',
+                'rating' => 4.9,
+                'total_reviews' => 100,
+                'total_jobs' => 120,
+            ]
+        ];
+
+        foreach ($testProviders as $providerData) {
+            $user = User::create([
+                'name' => $providerData['name'],
+                'email' => $providerData['email'],
+                'phone' => $providerData['phone'],
+                'password' => Hash::make('password123'),
+                'role' => User::ROLE_SERVICE,
+                'status' => User::STATUS_ACTIVE,
+                'email_verified_at' => now(),
+            ]);
+
+            ServiceProvider::create([
+                'user_id' => $user->id,
+                'company_name' => $providerData['company_name'],
+                'service_type' => $providerData['service_type'],
+                'description' => $providerData['description'],
+                'city' => $providerData['city'],
+                'district' => $providerData['district'],
+                'address' => $providerData['address'],
+                'latitude' => $this->getRandomLatitude($providerData['city']),
+                'longitude' => $this->getRandomLongitude($providerData['city']),
+                'working_hours' => $providerData['working_hours'],
+                'rating' => $providerData['rating'],
+                'total_reviews' => $providerData['total_reviews'],
+                'total_jobs' => $providerData['total_jobs'],
+                'is_verified' => true,
+                'status' => ServiceProvider::STATUS_ACTIVE,
+            ]);
+        }
+
         // Create some pending service providers
         $pendingProviders = [
             [
