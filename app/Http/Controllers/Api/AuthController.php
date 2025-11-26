@@ -267,6 +267,46 @@ class AuthController extends Controller
 
             $user->update($updateData);
 
+            // Update customer-specific data if user is a customer
+            if ($user->isCustomer() && $user->customer) {
+                $customerData = [];
+                
+                if ($request->has('address')) {
+                    $customerData['address'] = $request->address;
+                }
+                if ($request->has('city')) {
+                    $customerData['city'] = $request->city;
+                }
+                if ($request->has('district')) {
+                    $customerData['district'] = $request->district;
+                }
+                if ($request->has('latitude')) {
+                    $customerData['latitude'] = $request->latitude;
+                }
+                if ($request->has('longitude')) {
+                    $customerData['longitude'] = $request->longitude;
+                }
+                if ($request->has('profile_image')) {
+                    $customerData['profile_image'] = $request->profile_image;
+                }
+                if ($request->has('email_notifications')) {
+                    $customerData['email_notifications'] = $request->email_notifications;
+                }
+                if ($request->has('sms_notifications')) {
+                    $customerData['sms_notifications'] = $request->sms_notifications;
+                }
+                if ($request->has('push_notifications')) {
+                    $customerData['push_notifications'] = $request->push_notifications;
+                }
+                
+                if (!empty($customerData)) {
+                    $user->customer->update($customerData);
+                }
+            }
+
+            // Reload user with relationships
+            $user->load('customer');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Profile updated successfully',
@@ -279,6 +319,65 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Profile update failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Update notification preferences
+     */
+    public function updateNotificationPreferences(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user->isCustomer() || !$user->customer) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only customers can update notification preferences'
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'email_notifications' => 'sometimes|boolean',
+                'sms_notifications' => 'sometimes|boolean',
+                'push_notifications' => 'sometimes|boolean',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $updateData = [];
+            if ($request->has('email_notifications')) {
+                $updateData['email_notifications'] = $request->email_notifications;
+            }
+            if ($request->has('sms_notifications')) {
+                $updateData['sms_notifications'] = $request->sms_notifications;
+            }
+            if ($request->has('push_notifications')) {
+                $updateData['push_notifications'] = $request->push_notifications;
+            }
+
+            $user->customer->update($updateData);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification preferences updated successfully',
+                'data' => [
+                    'preferences' => $user->customer->only(['email_notifications', 'sms_notifications', 'push_notifications'])
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update notification preferences',
                 'error' => $e->getMessage()
             ], 500);
         }

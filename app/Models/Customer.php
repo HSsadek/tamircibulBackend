@@ -11,18 +11,25 @@ class Customer extends Model
 
     protected $fillable = [
         'user_id',
+        'profile_image',
         'address',
         'city',
         'district',
         'latitude',
         'longitude',
         'preferences',
+        'email_notifications',
+        'sms_notifications',
+        'push_notifications',
     ];
 
     protected $casts = [
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
         'preferences' => 'array',
+        'email_notifications' => 'boolean',
+        'sms_notifications' => 'boolean',
+        'push_notifications' => 'boolean',
     ];
 
     /**

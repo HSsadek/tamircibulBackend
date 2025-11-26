@@ -190,6 +190,246 @@ class KahramanmarasServicesSeeder extends Seeder
                 'description' => 'Evde telefon tamiri, tablet tamiri, aksesuar satışı.',
                 'price' => '₺90-280',
                 'phone' => '0344 555 0120'
+            ],
+            [
+                'name' => 'Maraş Kombi Servisi',
+                'service_type' => 'plumbing',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Kombi bakımı, arıza tamiri, yedek parça değişimi.',
+                'price' => '₺150-350',
+                'phone' => '0344 555 0121'
+            ],
+            [
+                'name' => 'Enerji Elektrik',
+                'service_type' => 'electrical',
+                'district' => 'Onikişubat',
+                'description' => 'Elektrik panosu montajı, topraklama, yıldırım koruma.',
+                'price' => '₺120-300',
+                'phone' => '0344 555 0122'
+            ],
+            [
+                'name' => 'Parlak Temizlik',
+                'service_type' => 'cleaning',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Ev temizliği, cam silme, halı yıkama hizmetleri.',
+                'price' => '₺90-220',
+                'phone' => '0344 555 0123'
+            ],
+            [
+                'name' => 'Vestel Yetkili Servis',
+                'service_type' => 'appliance',
+                'district' => 'Onikişubat',
+                'description' => 'Vestel marka beyaz eşya tamiri. Garantili işçilik.',
+                'price' => '₺130-420',
+                'phone' => '0344 555 0124'
+            ],
+            [
+                'name' => 'Dijital Bilgisayar',
+                'service_type' => 'computer',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Bilgisayar toplama, oyun bilgisayarı, donanım yükseltme.',
+                'price' => '₺150-500',
+                'phone' => '0344 555 0125'
+            ],
+            [
+                'name' => 'Hızlı Telefon Tamiri',
+                'service_type' => 'phone',
+                'district' => 'Onikişubat',
+                'description' => 'Aynı gün telefon tamiri, ekran değişimi, su kaçağı tamiri.',
+                'price' => '₺100-320',
+                'phone' => '0344 555 0126'
+            ],
+            [
+                'name' => 'Usta Kemal Tamirat',
+                'service_type' => 'other',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Kapı pencere tamiri, kilit değişimi, cam balkon montajı.',
+                'price' => '₺80-250',
+                'phone' => '0344 555 0127'
+            ],
+            [
+                'name' => 'Profesyonel Tesisat',
+                'service_type' => 'plumbing',
+                'district' => 'Onikişubat',
+                'description' => 'Tıkanıklık açma, su kaçağı tespiti, tesisat yenileme.',
+                'price' => '₺140-320',
+                'phone' => '0344 555 0128'
+            ],
+            [
+                'name' => 'Güç Elektrik Servisi',
+                'service_type' => 'electrical',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Jeneratör bakımı, UPS kurulumu, elektrik projesi.',
+                'price' => '₺200-500',
+                'phone' => '0344 555 0129'
+            ],
+            [
+                'name' => 'Kristal Temizlik',
+                'service_type' => 'cleaning',
+                'district' => 'Onikişubat',
+                'description' => 'Dış cephe temizliği, yüksekte cam silme, bina temizliği.',
+                'price' => '₺150-400',
+                'phone' => '0344 555 0130'
+            ],
+            [
+                'name' => 'Beko Yetkili Servisi',
+                'service_type' => 'appliance',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Beko marka beyaz eşya tamiri ve bakım hizmetleri.',
+                'price' => '₺140-450',
+                'phone' => '0344 555 0131'
+            ],
+            [
+                'name' => 'Sistem Bilgisayar',
+                'service_type' => 'computer',
+                'district' => 'Onikişubat',
+                'description' => 'Veri kurtarma, SSD yükseltme, RAM değişimi.',
+                'price' => '₺100-380',
+                'phone' => '0344 555 0132'
+            ],
+            [
+                'name' => 'Apple Servis Merkezi',
+                'service_type' => 'phone',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'iPhone, iPad, MacBook tamiri. Orijinal parça.',
+                'price' => '₺200-600',
+                'phone' => '0344 555 0133'
+            ],
+            [
+                'name' => 'Demir Doğrama Ustası',
+                'service_type' => 'other',
+                'district' => 'Onikişubat',
+                'description' => 'Demir kapı, ferforje, korkuluk yapımı ve tamiri.',
+                'price' => '₺150-500',
+                'phone' => '0344 555 0134'
+            ],
+            [
+                'name' => 'Sıhhi Tesisat Merkezi',
+                'service_type' => 'plumbing',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Banyo yenileme, mutfak tesisatı, hidrofor montajı.',
+                'price' => '₺180-400',
+                'phone' => '0344 555 0135'
+            ],
+            [
+                'name' => 'Aydınlatma Elektrik',
+                'service_type' => 'electrical',
+                'district' => 'Onikişubat',
+                'description' => 'Dekoratif aydınlatma, akıllı ev sistemleri, otomasyon.',
+                'price' => '₺150-450',
+                'phone' => '0344 555 0136'
+            ],
+            [
+                'name' => 'Hijyen Temizlik',
+                'service_type' => 'cleaning',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Hastane temizliği, dezenfeksiyon, sterilizasyon.',
+                'price' => '₺120-350',
+                'phone' => '0344 555 0137'
+            ],
+            [
+                'name' => 'Siemens Yetkili Servis',
+                'service_type' => 'appliance',
+                'district' => 'Onikişubat',
+                'description' => 'Siemens marka beyaz eşya tamiri. Uzman kadro.',
+                'price' => '₺160-500',
+                'phone' => '0344 555 0138'
+            ],
+            [
+                'name' => 'Oyun Bilgisayarı Servisi',
+                'service_type' => 'computer',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Gaming PC toplama, ekran kartı değişimi, soğutma sistemi.',
+                'price' => '₺200-700',
+                'phone' => '0344 555 0139'
+            ],
+            [
+                'name' => 'Samsung Servis Noktası',
+                'service_type' => 'phone',
+                'district' => 'Onikişubat',
+                'description' => 'Samsung telefon ve tablet tamiri. Garantili hizmet.',
+                'price' => '₺120-400',
+                'phone' => '0344 555 0140'
+            ],
+            [
+                'name' => 'Alüminyum Doğrama',
+                'service_type' => 'other',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'PVC kapı pencere, cam balkon, sineklik montajı.',
+                'price' => '₺200-600',
+                'phone' => '0344 555 0141'
+            ],
+            [
+                'name' => 'Doğalgaz Tesisatçısı',
+                'service_type' => 'plumbing',
+                'district' => 'Onikişubat',
+                'description' => 'Doğalgaz tesisatı, kombi bağlantısı, gaz kaçağı kontrolü.',
+                'price' => '₺180-450',
+                'phone' => '0344 555 0142'
+            ],
+            [
+                'name' => 'Endüstriyel Elektrik',
+                'service_type' => 'electrical',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Fabrika elektrik tesisatı, motor bakımı, trafo montajı.',
+                'price' => '₺300-800',
+                'phone' => '0344 555 0143'
+            ],
+            [
+                'name' => 'Kurumsal Temizlik',
+                'service_type' => 'cleaning',
+                'district' => 'Onikişubat',
+                'description' => 'AVM temizliği, otel temizliği, toplu temizlik hizmetleri.',
+                'price' => '₺200-500',
+                'phone' => '0344 555 0144'
+            ],
+            [
+                'name' => 'LG Yetkili Servisi',
+                'service_type' => 'appliance',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'LG marka beyaz eşya tamiri. Hızlı ve güvenilir.',
+                'price' => '₺150-480',
+                'phone' => '0344 555 0145'
+            ],
+            [
+                'name' => 'Laptop Hastanesi',
+                'service_type' => 'computer',
+                'district' => 'Onikişubat',
+                'description' => 'Laptop ekran değişimi, klavye tamiri, fan temizliği.',
+                'price' => '₺120-400',
+                'phone' => '0344 555 0146'
+            ],
+            [
+                'name' => 'Xiaomi Servis Merkezi',
+                'service_type' => 'phone',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Xiaomi telefon tamiri, MIUI güncelleme, ekran değişimi.',
+                'price' => '₺90-300',
+                'phone' => '0344 555 0147'
+            ],
+            [
+                'name' => 'Boyacı Usta',
+                'service_type' => 'other',
+                'district' => 'Onikişubat',
+                'description' => 'İç dış boya, alçıpan, dekorasyon işleri.',
+                'price' => '₺100-350',
+                'phone' => '0344 555 0148'
+            ],
+            [
+                'name' => 'Petek Temizleme Servisi',
+                'service_type' => 'plumbing',
+                'district' => 'Dulkadiroğlu',
+                'description' => 'Petek temizliği, kalorifer bakımı, sistem yıkama.',
+                'price' => '₺120-280',
+                'phone' => '0344 555 0149'
+            ],
+            [
+                'name' => 'Güneş Enerjisi Sistemleri',
+                'service_type' => 'electrical',
+                'district' => 'Onikişubat',
+                'description' => 'Solar panel kurulumu, güneş enerjisi sistemleri.',
+                'price' => '₺500-2000',
+                'phone' => '0344 555 0150'
             ]
         ];
 
@@ -234,6 +474,6 @@ class KahramanmarasServicesSeeder extends Seeder
             ]);
         }
 
-        $this->command->info('Kahramanmaraş için 20 servis sağlayıcı eklendi!');
+        $this->command->info('Kahramanmaraş için 50 servis sağlayıcı eklendi!');
     }
 }
