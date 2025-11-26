@@ -323,6 +323,11 @@ class ServiceProviderController extends Controller
         try {
             $user = $request->user();
             
+            \Log::info('Upload logo request', [
+                'user_id' => $user->id,
+                'has_file' => $request->hasFile('logo')
+            ]);
+            
             if (!$user->isServiceProvider()) {
                 return response()->json([
                     'success' => false,
@@ -344,6 +349,18 @@ class ServiceProviderController extends Controller
 
             $serviceProvider = $user->serviceProvider;
             
+            if (!$serviceProvider) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Service provider profile not found'
+                ], 404);
+            }
+            
+            \Log::info('Service provider found', [
+                'sp_id' => $serviceProvider->id,
+                'current_logo' => $serviceProvider->logo
+            ]);
+            
             // Delete old logo if exists
             if ($serviceProvider->logo) {
                 Storage::disk('public')->delete($serviceProvider->logo);
@@ -351,8 +368,19 @@ class ServiceProviderController extends Controller
             
             // Store new logo
             $logoPath = $request->file('logo')->store('logos', 'public');
-            $serviceProvider->logo = $logoPath;
-            $serviceProvider->save();
+            
+            \Log::info('Logo stored', ['path' => $logoPath]);
+            
+            // Update using update method to ensure it's saved
+            $serviceProvider->update(['logo' => $logoPath]);
+            
+            // Refresh to get updated data
+            $serviceProvider->refresh();
+            
+            \Log::info('Logo updated in database', [
+                'sp_id' => $serviceProvider->id,
+                'new_logo' => $serviceProvider->logo
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -364,6 +392,11 @@ class ServiceProviderController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Logo upload error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload logo',

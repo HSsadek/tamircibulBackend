@@ -149,6 +149,7 @@ class ServiceController extends Controller
                     'service_type' => $provider->service_type,
                     'service_type_name' => $typeNames[$provider->service_type] ?? 'Diğer',
                     'image' => $icons[$provider->service_type] ?? '🛠️',
+                    'logo' => $provider->logo ? asset('storage/' . $provider->logo) : null,
                     'rating' => $provider->rating,
                     'reviews' => $provider->total_reviews,
                     'total_reviews' => $provider->total_reviews,
