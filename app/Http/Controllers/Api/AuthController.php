@@ -147,20 +147,17 @@ class AuthController extends Controller
             $token = $user->createToken('auth_token')->plainTextToken;
 
             // Load related data
-            $userData = $user->toArray();
             if ($user->isServiceProvider()) {
                 $user->load('serviceProvider');
-                $userData['service_provider'] = $user->serviceProvider;
             } elseif ($user->isCustomer()) {
                 $user->load('customer');
-                $userData['customer'] = $user->customer;
             }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Login successful',
                 'data' => [
-                    'user' => $userData,
+                    'user' => $user,
                     'token' => $token,
                 ]
             ]);
@@ -268,7 +265,15 @@ class AuthController extends Controller
             $user->update($updateData);
 
             // Update customer-specific data if user is a customer
-            if ($user->isCustomer() && $user->customer) {
+            if ($user->isCustomer()) {
+                // Eğer customer kaydı yoksa oluştur
+                if (!$user->customer) {
+                    Customer::create([
+                        'user_id' => $user->id,
+                    ]);
+                    $user->load('customer');
+                }
+                
                 $customerData = [];
                 
                 if ($request->has('address')) {
@@ -316,10 +321,15 @@ class AuthController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Profile update error: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Profile update failed',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => basename($e->getFile())
             ], 500);
         }
     }
