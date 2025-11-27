@@ -31,14 +31,14 @@ class ServiceProviderController extends Controller
             
             // Get statistics
             $stats = [
-                'total_requests' => ServiceRequest::where('service_provider_id', $user->id)->count(),
-                'pending_requests' => ServiceRequest::where('service_provider_id', $user->id)
+                'totalRequests' => ServiceRequest::where('service_provider_id', $user->id)->count(),
+                'pendingRequests' => ServiceRequest::where('service_provider_id', $user->id)
                     ->where('status', ServiceRequest::STATUS_PENDING)->count(),
-                'completed_jobs' => ServiceRequest::where('service_provider_id', $user->id)
+                'completedJobs' => ServiceRequest::where('service_provider_id', $user->id)
                     ->where('status', ServiceRequest::STATUS_COMPLETED)->count(),
-                'earnings' => 0, // This would be calculated based on completed jobs and pricing
+                'complaints' => 0, // This would be calculated from complaints table
                 'rating' => $serviceProvider->rating ?? 0,
-                'total_reviews' => $serviceProvider->total_reviews ?? 0,
+                'totalReviews' => $serviceProvider->total_reviews ?? 0,
             ];
 
             return response()->json([
@@ -73,7 +73,7 @@ class ServiceProviderController extends Controller
                 ], 403);
             }
 
-            $query = ServiceRequest::with(['customer'])
+            $query = ServiceRequest::with(['customer', 'customer.customer'])
                 ->where('service_provider_id', $user->id);
 
             // Filter by status
@@ -154,6 +154,77 @@ class ServiceProviderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to accept service request',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reject a service request
+     */
+    public function rejectRequest(Request $request, $requestId)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user->isServiceProvider()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Service provider role required.'
+                ], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'reason' => 'required|string|min:10|max:500'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $serviceRequest = ServiceRequest::find($requestId);
+            
+            if (!$serviceRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Service request not found'
+                ], 404);
+            }
+
+            if ($serviceRequest->service_provider_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized to reject this request'
+                ], 403);
+            }
+
+            if (!$serviceRequest->isPending()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only pending requests can be rejected'
+                ], 422);
+            }
+
+            // Update request status to rejected
+            $serviceRequest->status = ServiceRequest::STATUS_REJECTED;
+            $serviceRequest->cancellation_reason = $request->reason;
+            $serviceRequest->cancelled_at = now();
+            $serviceRequest->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Service request rejected successfully',
+                'data' => $serviceRequest->load(['customer', 'serviceProvider'])
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to reject service request',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -460,18 +531,18 @@ class ServiceProviderController extends Controller
             $serviceProvider = $user->serviceProvider;
             
             $stats = [
-                'total_requests' => ServiceRequest::where('service_provider_id', $user->id)->count(),
-                'pending_requests' => ServiceRequest::where('service_provider_id', $user->id)
+                'totalRequests' => ServiceRequest::where('service_provider_id', $user->id)->count(),
+                'pendingRequests' => ServiceRequest::where('service_provider_id', $user->id)
                     ->where('status', ServiceRequest::STATUS_PENDING)->count(),
-                'accepted_requests' => ServiceRequest::where('service_provider_id', $user->id)
+                'acceptedRequests' => ServiceRequest::where('service_provider_id', $user->id)
                     ->where('status', ServiceRequest::STATUS_ACCEPTED)->count(),
-                'completed_jobs' => ServiceRequest::where('service_provider_id', $user->id)
+                'completedJobs' => ServiceRequest::where('service_provider_id', $user->id)
                     ->where('status', ServiceRequest::STATUS_COMPLETED)->count(),
-                'cancelled_requests' => ServiceRequest::where('service_provider_id', $user->id)
+                'cancelledRequests' => ServiceRequest::where('service_provider_id', $user->id)
                     ->where('status', ServiceRequest::STATUS_CANCELLED)->count(),
+                'complaints' => 0, // This would be calculated from complaints table
                 'rating' => $serviceProvider->rating ?? 0,
-                'total_reviews' => $serviceProvider->total_reviews ?? 0,
-                'earnings' => 0, // This would be calculated based on completed jobs
+                'totalReviews' => $serviceProvider->total_reviews ?? 0,
             ];
 
             return response()->json([
@@ -483,6 +554,153 @@ class ServiceProviderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch statistics',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a service request (only rejected ones)
+     */
+    public function deleteRequest(Request $request, $requestId)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user->isServiceProvider()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Service provider role required.'
+                ], 403);
+            }
+
+            $serviceRequest = ServiceRequest::find($requestId);
+            
+            if (!$serviceRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Service request not found'
+                ], 404);
+            }
+
+            if ($serviceRequest->service_provider_id !== $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized to delete this request'
+                ], 403);
+            }
+
+            // Only allow deletion of rejected or cancelled requests
+            if ($serviceRequest->status !== ServiceRequest::STATUS_REJECTED && 
+                $serviceRequest->status !== ServiceRequest::STATUS_CANCELLED) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Only rejected or cancelled requests can be deleted'
+                ], 422);
+            }
+
+            $serviceRequest->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Service request deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete service request',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get notifications for service provider
+     */
+    public function getNotifications(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user->isServiceProvider()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Service provider role required.'
+                ], 403);
+            }
+
+            // Generate sample notifications based on recent requests
+            $recentRequests = ServiceRequest::where('service_provider_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get();
+
+            $notifications = [];
+            
+            foreach ($recentRequests as $req) {
+                $notification = [
+                    'id' => $req->id,
+                    'type' => 'new_request',
+                    'title' => 'Yeni Talep',
+                    'message' => $req->customer_name . ' tarafından yeni bir talep oluşturuldu: ' . $req->service_type,
+                    'created_at' => $req->created_at,
+                    'read' => $req->status !== ServiceRequest::STATUS_PENDING
+                ];
+                
+                if ($req->status === ServiceRequest::STATUS_ACCEPTED) {
+                    $notification['type'] = 'request_accepted';
+                    $notification['title'] = 'Talep Kabul Edildi';
+                    $notification['message'] = 'Talebi kabul ettiniz. Müşteri ile iletişime geçebilirsiniz.';
+                } elseif ($req->status === ServiceRequest::STATUS_COMPLETED) {
+                    $notification['type'] = 'request_completed';
+                    $notification['title'] = 'İş Tamamlandı';
+                    $notification['message'] = $req->customer_name . ' için iş başarıyla tamamlandı.';
+                }
+                
+                $notifications[] = $notification;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $notifications
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch notifications',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Mark notification as read
+     */
+    public function markNotificationAsRead(Request $request, $notificationId)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user->isServiceProvider()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Service provider role required.'
+                ], 403);
+            }
+
+            // In a real implementation, you would update the notification in the database
+            // For now, we'll just return success
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification marked as read'
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to mark notification as read',
                 'error' => $e->getMessage()
             ], 500);
         }

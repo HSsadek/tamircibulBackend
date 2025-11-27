@@ -366,6 +366,11 @@ class ServiceController extends Controller
                     'district' => $request->district,
                     'latitude' => $request->latitude,
                     'longitude' => $request->longitude,
+                    'budget_min' => $request->budget_min,
+                    'budget_max' => $request->budget_max,
+                    'cancellation_reason' => $request->cancellation_reason,
+                    'cancelled_at' => $request->cancelled_at,
+                    'completed_at' => $request->completed_at,
                     'created_at' => $request->created_at,
                     'updated_at' => $request->updated_at,
                     'service_provider' => $serviceProviderData,
@@ -457,6 +462,55 @@ class ServiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Talep iptal edilirken hata oluştu',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Delete a service request (only rejected ones)
+     */
+    public function deleteRequest(Request $request, $id)
+    {
+        try {
+            $serviceRequest = ServiceRequest::find($id);
+            
+            if (!$serviceRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Talep bulunamadı'
+                ], 404);
+            }
+            
+            if ($serviceRequest->customer_id !== $request->user()->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bu talep size ait değil'
+                ], 403);
+            }
+
+            // Only allow deletion of rejected or cancelled requests
+            if ($serviceRequest->status !== ServiceRequest::STATUS_REJECTED && 
+                $serviceRequest->status !== ServiceRequest::STATUS_CANCELLED) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sadece reddedilmiş veya iptal edilmiş talepler silinebilir'
+                ], 422);
+            }
+
+            $serviceRequest->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Talep başarıyla silindi'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to delete service request: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Talep silinirken hata oluştu',
                 'error' => $e->getMessage()
             ], 500);
         }

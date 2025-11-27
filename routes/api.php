@@ -58,6 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/my-requests', [ServiceController::class, 'getCustomerRequests']);
         Route::post('/request', [ServiceController::class, 'createRequest']);
         Route::post('/request/{id}/cancel', [ServiceController::class, 'cancelRequest']);
+        Route::delete('/request/{id}', [ServiceController::class, 'deleteRequest']);
     });
 
     // Service provider routes
@@ -66,11 +67,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/requests', [ServiceProviderController::class, 'getRequests']);
         Route::get('/stats', [ServiceProviderController::class, 'getStats']);
         Route::post('/requests/{id}/accept', [ServiceProviderController::class, 'acceptRequest']);
+        Route::post('/requests/{id}/reject', [ServiceProviderController::class, 'rejectRequest']);
         Route::post('/requests/{id}/complete', [ServiceProviderController::class, 'completeRequest']);
+        Route::delete('/requests/{id}', [ServiceProviderController::class, 'deleteRequest']);
         Route::get('/profile', [ServiceProviderController::class, 'getProfile']);
         Route::put('/profile', [ServiceProviderController::class, 'updateProfile']);
         Route::post('/profile/logo', [ServiceProviderController::class, 'uploadLogo']);
         Route::delete('/profile/logo', [ServiceProviderController::class, 'deleteLogo']);
+        
+        // Notifications
+        Route::get('/notifications', [ServiceProviderController::class, 'getNotifications']);
+        Route::post('/notifications/{id}/read', [ServiceProviderController::class, 'markNotificationAsRead']);
     });
 });
 
