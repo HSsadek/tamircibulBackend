@@ -43,13 +43,6 @@ Route::prefix('admin')->group(function () {
     });
 });
 
-// Public service routes
-Route::prefix('services')->group(function () {
-    Route::get('/', [ServiceController::class, 'index']);
-    Route::get('/types', [ServiceController::class, 'getServiceTypes']);
-    Route::get('/{id}', [ServiceController::class, 'show']);
-});
-
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth routes
@@ -60,10 +53,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/notifications', [AuthController::class, 'updateNotificationPreferences']);
     });
 
-    // Service routes for customers
+    // Service routes for customers - MUST be BEFORE public services routes
     Route::prefix('services')->group(function () {
-        Route::post('/request', [ServiceController::class, 'createRequest']);
         Route::get('/my-requests', [ServiceController::class, 'getCustomerRequests']);
+        Route::post('/request', [ServiceController::class, 'createRequest']);
+        Route::post('/request/{id}/cancel', [ServiceController::class, 'cancelRequest']);
     });
 
     // Service provider routes
@@ -78,6 +72,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/profile/logo', [ServiceProviderController::class, 'uploadLogo']);
         Route::delete('/profile/logo', [ServiceProviderController::class, 'deleteLogo']);
     });
+});
+
+// Public service routes - MUST be AFTER protected routes to avoid conflicts
+Route::prefix('services')->group(function () {
+    Route::get('/', [ServiceController::class, 'index']);
+    Route::get('/types', [ServiceController::class, 'getServiceTypes']);
+    // {id} route MUST be last
+    Route::get('/{id}', [ServiceController::class, 'show']);
 });
 
 // Health check route

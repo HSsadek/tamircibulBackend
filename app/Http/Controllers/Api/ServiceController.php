@@ -246,7 +246,7 @@ class ServiceController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'service_provider_id' => 'nullable|exists:users,id',
+                'service_provider_id' => 'nullable|exists:service_providers,id',
                 'service_type' => 'required|string',
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
@@ -272,9 +272,18 @@ class ServiceController extends Controller
                 ], 422);
             }
 
+            // Convert ServiceProvider ID to User ID
+            $userProviderId = null;
+            if ($request->service_provider_id) {
+                $serviceProvider = ServiceProvider::find($request->service_provider_id);
+                if ($serviceProvider) {
+                    $userProviderId = $serviceProvider->user_id;
+                }
+            }
+
             $serviceRequest = ServiceRequest::create([
                 'customer_id' => $request->user()->id,
-                'service_provider_id' => $request->service_provider_id,
+                'service_provider_id' => $userProviderId,
                 'service_type' => $request->service_type,
                 'title' => $request->title,
                 'description' => $request->description,
@@ -315,27 +324,68 @@ class ServiceController extends Controller
     public function getCustomerRequests(Request $request)
     {
         try {
-            $requests = ServiceRequest::with(['serviceProvider.user'])
+            \Log::info('Fetching requests for customer: ' . $request->user()->id);
+            
+            $requests = ServiceRequest::with(['customer', 'serviceProvider.serviceProvider'])
                 ->where('customer_id', $request->user()->id)
                 ->orderBy('created_at', 'desc')
-                ->paginate($request->per_page ?? 20);
+                ->get();
+
+            \Log::info('Found ' . $requests->count() . ' requests');
+
+            // Transform data for frontend
+            $transformedRequests = $requests->map(function ($request) {
+                $serviceProviderData = null;
+                
+                if ($request->serviceProvider) {
+                    $serviceProviderData = [
+                        'id' => $request->serviceProvider->id,
+                        'name' => $request->serviceProvider->name,
+                        'email' => $request->serviceProvider->email,
+                        'phone' => $request->serviceProvider->phone,
+                    ];
+                    
+                    // Add logo if service provider profile exists
+                    if ($request->serviceProvider->serviceProvider) {
+                        $serviceProviderData['logo'] = $request->serviceProvider->serviceProvider->logo 
+                            ? asset('storage/' . $request->serviceProvider->serviceProvider->logo) 
+                            : null;
+                        $serviceProviderData['company_name'] = $request->serviceProvider->serviceProvider->company_name;
+                    }
+                }
+                
+                return [
+                    'id' => $request->id,
+                    'title' => $request->title,
+                    'description' => $request->description,
+                    'service_type' => $request->service_type,
+                    'status' => $request->status,
+                    'priority' => $request->priority,
+                    'address' => $request->address,
+                    'city' => $request->city,
+                    'district' => $request->district,
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude,
+                    'created_at' => $request->created_at,
+                    'updated_at' => $request->updated_at,
+                    'service_provider' => $serviceProviderData,
+                ];
+            });
 
             return response()->json([
                 'success' => true,
-                'data' => $requests->items(),
-                'pagination' => [
-                    'current_page' => $requests->currentPage(),
-                    'last_page' => $requests->lastPage(),
-                    'per_page' => $requests->perPage(),
-                    'total' => $requests->total(),
-                ]
+                'data' => $transformedRequests
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Failed to fetch service requests: ' . $e->getMessage());
+            \Log::error($e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch service requests',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ], 500);
         }
     }
@@ -355,6 +405,58 @@ class ServiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch service types',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Cancel a service request
+     */
+    public function cancelRequest(Request $request, $id)
+    {
+        try {
+            $serviceRequest = ServiceRequest::where('id', $id)
+                ->where('customer_id', $request->user()->id)
+                ->first();
+
+            if (!$serviceRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Talep bulunamadı veya size ait değil'
+                ], 404);
+            }
+
+            // Check if request can be cancelled
+            if ($serviceRequest->status === ServiceRequest::STATUS_COMPLETED) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tamamlanmış talepler iptal edilemez'
+                ], 400);
+            }
+
+            if ($serviceRequest->status === ServiceRequest::STATUS_CANCELLED) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bu talep zaten iptal edilmiş'
+                ], 400);
+            }
+
+            // Cancel the request
+            $serviceRequest->cancel('Müşteri tarafından iptal edildi');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Talep başarıyla iptal edildi',
+                'data' => $serviceRequest
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to cancel service request: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Talep iptal edilirken hata oluştu',
                 'error' => $e->getMessage()
             ], 500);
         }
