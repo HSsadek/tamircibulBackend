@@ -14,6 +14,60 @@ use Illuminate\Validation\ValidationException;
 class AuthController extends Controller
 {
     /**
+     * Translate validation messages to Turkish
+     */
+    private function translateValidationMessage($field, $message)
+    {
+        $translations = [
+            'required' => 'zorunludur',
+            'email' => 'geçerli bir e-posta adresi olmalıdır',
+            'unique' => 'zaten kullanılıyor',
+            'min' => 'en az :min karakter olmalıdır',
+            'max' => 'en fazla :max karakter olmalıdır',
+            'confirmed' => 'eşleşmiyor',
+            'string' => 'metin olmalıdır',
+            'in' => 'geçersiz değer',
+        ];
+        
+        $fieldNames = [
+            'name' => 'Ad Soyad',
+            'email' => 'E-posta',
+            'phone' => 'Telefon',
+            'password' => 'Şifre',
+            'password_confirmation' => 'Şifre Tekrarı',
+            'role' => 'Rol',
+            'service_type' => 'Hizmet Türü',
+            'description' => 'Açıklama',
+        ];
+        
+        $fieldName = $fieldNames[$field] ?? $field;
+        
+        // Check for specific validation rules
+        if (strpos($message, 'required') !== false) {
+            return "$fieldName alanı zorunludur";
+        }
+        if (strpos($message, 'email') !== false) {
+            return "$fieldName geçerli bir e-posta adresi olmalıdır";
+        }
+        if (strpos($message, 'unique') !== false) {
+            return "$fieldName zaten kullanılıyor";
+        }
+        if (strpos($message, 'min') !== false) {
+            preg_match('/\d+/', $message, $matches);
+            $min = $matches[0] ?? '6';
+            return "$fieldName en az $min karakter olmalıdır";
+        }
+        if (strpos($message, 'confirmed') !== false) {
+            return "$fieldName eşleşmiyor";
+        }
+        if (strpos($message, 'required_if') !== false) {
+            return "$fieldName alanı zorunludur";
+        }
+        
+        return $message;
+    }
+
+    /**
      * Register a new user
      */
     public function register(Request $request)
@@ -71,7 +125,7 @@ class AuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'User registered successfully',
+                'message' => 'Kayıt başarıyla tamamlandı',
                 'data' => [
                     'user' => $user,
                     'requires_approval' => $request->role === 'service'
@@ -81,7 +135,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Registration failed',
+                'message' => 'Kayıt işlemi başarısız oldu',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -100,10 +154,19 @@ class AuthController extends Controller
             ]);
 
             if ($validator->fails()) {
+                // Türkçe hata mesajları
+                $errors = [];
+                foreach ($validator->errors()->messages() as $field => $messages) {
+                    foreach ($messages as $message) {
+                        $translatedMessage = $this->translateValidationMessage($field, $message);
+                        $errors[$field][] = $translatedMessage;
+                    }
+                }
+                
                 return response()->json([
                     'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
+                    'message' => 'Girdiğiniz bilgilerde hata var',
+                    'errors' => $errors
                 ], 422);
             }
 
@@ -111,7 +174,8 @@ class AuthController extends Controller
             if (!$request->email && !$request->phone) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Either email or phone is required'
+                    'message' => 'E-posta veya telefon numarası gereklidir',
+                    'errors' => ['identifier' => ['E-posta veya telefon numarası girmelisiniz']]
                 ], 422);
             }
 
@@ -126,15 +190,16 @@ class AuthController extends Controller
             if (!$user || !Hash::check($request->password, $user->password)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Invalid credentials'
+                    'message' => 'E-posta veya şifre hatalı',
+                    'errors' => ['credentials' => ['Girdiğiniz bilgiler hatalı. Lütfen kontrol edin.']]
                 ], 401);
             }
 
             // Check if user is active
             if (!$user->isActive()) {
                 $message = $user->status === User::STATUS_PENDING 
-                    ? 'Your account is pending approval' 
-                    : 'Your account is not active';
+                    ? 'Hesabınız onay bekliyor' 
+                    : 'Hesabınız aktif değil';
                 
                 return response()->json([
                     'success' => false,
@@ -165,7 +230,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Login failed',
+                'message' => 'Giriş işlemi başarısız oldu',
                 'error' => $e->getMessage()
             ], 500);
         }
