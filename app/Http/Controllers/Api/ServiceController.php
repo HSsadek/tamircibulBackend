@@ -142,17 +142,30 @@ class ServiceController extends Controller
                     'other' => 'Diğer'
                 ];
 
+                // Gerçek değerlendirme sayısını hesapla
+                $realReviewCount = \App\Models\ServiceRequest::where('service_provider_id', $provider->user_id)
+                    ->whereNotNull('rating')
+                    ->where('rating', '>', 0)
+                    ->count();
+                
+                // Gerçek ortalama rating'i hesapla
+                $realAvgRating = \App\Models\ServiceRequest::where('service_provider_id', $provider->user_id)
+                    ->whereNotNull('rating')
+                    ->where('rating', '>', 0)
+                    ->avg('rating');
+
                 $serviceData = [
                     'id' => $provider->id,
                     'name' => $provider->company_name ?: $provider->user->name,
+                    'company_name' => $provider->company_name,
                     'description' => $provider->description,
                     'service_type' => $provider->service_type,
                     'service_type_name' => $typeNames[$provider->service_type] ?? 'Diğer',
                     'image' => $icons[$provider->service_type] ?? '🛠️',
                     'logo' => $provider->logo ? asset('storage/' . $provider->logo) : null,
-                    'rating' => $provider->rating,
-                    'reviews' => $provider->total_reviews,
-                    'total_reviews' => $provider->total_reviews,
+                    'rating' => $realAvgRating ? round($realAvgRating, 1) : ($provider->rating ?: 5.0),
+                    'reviews' => $realReviewCount,
+                    'total_reviews' => $realReviewCount,
                     'city' => $provider->city,
                     'district' => $provider->district,
                     'price' => '₺' . rand(50, 300) . '-' . rand(300, 800), // Mock price range
