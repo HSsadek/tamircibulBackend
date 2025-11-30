@@ -31,17 +31,27 @@ class ServiceRequest extends Model
         'completed_at',
         'cancelled_at',
         'cancellation_reason',
+        'rating',
+        'rating_comment',
+        'rated_at',
+        'has_complaint',
+        'complaint_reason',
+        'complaint_description',
+        'complaint_date',
     ];
 
     protected $casts = [
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
-        'budget_min' => 'decimal:8,2',
-        'budget_max' => 'decimal:8,2',
+        'budget_min' => 'decimal:2',
+        'budget_max' => 'decimal:2',
         'preferred_date' => 'date',
         'images' => 'array',
         'completed_at' => 'datetime',
         'cancelled_at' => 'datetime',
+        'rated_at' => 'datetime',
+        'complaint_date' => 'datetime',
+        'has_complaint' => 'boolean',
     ];
 
     /**

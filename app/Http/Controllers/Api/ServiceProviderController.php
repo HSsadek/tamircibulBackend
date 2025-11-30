@@ -36,7 +36,11 @@ class ServiceProviderController extends Controller
                     ->where('status', ServiceRequest::STATUS_PENDING)->count(),
                 'completedJobs' => ServiceRequest::where('service_provider_id', $user->id)
                     ->where('status', ServiceRequest::STATUS_COMPLETED)->count(),
-                'complaints' => 0, // This would be calculated from complaints table
+                'complaints' => ServiceRequest::where('service_provider_id', $user->id)
+                    ->where('has_complaint', true)->count(),
+                'reviews' => ServiceRequest::where('service_provider_id', $user->id)
+                    ->whereNotNull('rating')
+                    ->where('rating', '>', 0)->count(),
                 'rating' => $serviceProvider->rating ?? 0,
                 'totalReviews' => $serviceProvider->total_reviews ?? 0,
             ];

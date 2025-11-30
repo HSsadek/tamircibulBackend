@@ -23,6 +23,7 @@ class ServiceProvider extends Model
         'working_hours',
         'logo',
         'rating',
+        'rating_count',
         'total_reviews',
         'total_jobs',
         'is_verified',

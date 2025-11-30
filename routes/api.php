@@ -59,6 +59,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/request', [ServiceController::class, 'createRequest']);
         Route::post('/request/{id}/cancel', [ServiceController::class, 'cancelRequest']);
         Route::delete('/request/{id}', [ServiceController::class, 'deleteRequest']);
+        Route::post('/request/{id}/rate', [ServiceController::class, 'rateRequest']);
+        Route::post('/request/{id}/complaint', [ServiceController::class, 'createComplaint']);
     });
 
     // Service provider routes

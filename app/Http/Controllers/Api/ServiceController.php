@@ -225,9 +225,36 @@ class ServiceController extends Controller
                 ], 404);
             }
 
+            // Get reviews for this service provider
+            $reviews = ServiceRequest::with(['customer', 'customer.customer'])
+                ->where('service_provider_id', $service->user_id)
+                ->whereNotNull('rating')
+                ->where('rating', '>', 0)
+                ->orderBy('rated_at', 'desc')
+                ->get()
+                ->map(function ($request) {
+                    return [
+                        'id' => $request->id,
+                        'rating' => $request->rating,
+                        'comment' => $request->rating_comment,
+                        'title' => $request->title,
+                        'service_type' => $request->service_type,
+                        'rated_at' => $request->rated_at,
+                        'customer' => [
+                            'name' => $request->customer->name ?? 'Müşteri',
+                            'profile_image' => $request->customer->customer->profile_image ?? null,
+                        ],
+                    ];
+                });
+
             return response()->json([
                 'success' => true,
-                'data' => $service
+                'data' => [
+                    'service' => $service,
+                    'reviews' => $reviews,
+                    'average_rating' => $reviews->avg('rating'),
+                    'total_reviews' => $reviews->count(),
+                ]
             ]);
 
         } catch (\Exception $e) {
@@ -511,6 +538,161 @@ class ServiceController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Talep silinirken hata oluştu',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Rate a service request
+     */
+    public function rateRequest(Request $request, $id)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'rating' => 'required|integer|min:1|max:5',
+                'comment' => 'nullable|string|max:1000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Geçersiz veri',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $serviceRequest = ServiceRequest::find($id);
+            
+            if (!$serviceRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Talep bulunamadı'
+                ], 404);
+            }
+            
+            if ($serviceRequest->customer_id !== $request->user()->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bu talep size ait değil'
+                ], 403);
+            }
+
+            // Only allow rating of accepted requests
+            if ($serviceRequest->status !== ServiceRequest::STATUS_ACCEPTED) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sadece kabul edilmiş talepler değerlendirilebilir'
+                ], 422);
+            }
+
+            // Update the service request with rating
+            $serviceRequest->rating = $request->rating;
+            $serviceRequest->rating_comment = $request->comment;
+            $serviceRequest->rated_at = now();
+            $serviceRequest->save();
+
+            // Update service provider's average rating
+            if ($serviceRequest->service_provider_id) {
+                $serviceProvider = ServiceProvider::find($serviceRequest->service_provider_id);
+                if ($serviceProvider) {
+                    $avgRating = ServiceRequest::where('service_provider_id', $serviceProvider->id)
+                        ->whereNotNull('rating')
+                        ->avg('rating');
+                    
+                    $ratingCount = ServiceRequest::where('service_provider_id', $serviceProvider->id)
+                        ->whereNotNull('rating')
+                        ->count();
+                    
+                    $serviceProvider->rating = round($avgRating, 2);
+                    $serviceProvider->rating_count = $ratingCount;
+                    $serviceProvider->save();
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Değerlendirmeniz başarıyla kaydedildi',
+                'data' => [
+                    'request' => $serviceRequest
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to rate service request: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Değerlendirme kaydedilirken hata oluştu',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Create a complaint for a service request
+     */
+    public function createComplaint(Request $request, $id)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'reason' => 'required|string|max:255',
+                'description' => 'required|string|max:2000'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Geçersiz veri',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $serviceRequest = ServiceRequest::find($id);
+            
+            if (!$serviceRequest) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Talep bulunamadı'
+                ], 404);
+            }
+            
+            if ($serviceRequest->customer_id !== $request->user()->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bu talep size ait değil'
+                ], 403);
+            }
+
+            // Only allow complaints for accepted requests
+            if ($serviceRequest->status !== ServiceRequest::STATUS_ACCEPTED) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sadece kabul edilmiş talepler için şikayet oluşturulabilir'
+                ], 422);
+            }
+
+            // Update the service request with complaint
+            $serviceRequest->has_complaint = true;
+            $serviceRequest->complaint_reason = $request->reason;
+            $serviceRequest->complaint_description = $request->description;
+            $serviceRequest->complaint_date = now();
+            $serviceRequest->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Şikayetiniz başarıyla kaydedildi',
+                'data' => [
+                    'request' => $serviceRequest
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Failed to create complaint: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Şikayet kaydedilirken hata oluştu',
                 'error' => $e->getMessage()
             ], 500);
         }
