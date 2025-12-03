@@ -394,13 +394,34 @@ class ServiceController extends Controller
                     }
                 }
                 
+                // Service type names in Turkish
+                $serviceTypeNames = [
+                    'plumbing' => 'Tesisatçı',
+                    'electrical' => 'Elektrikçi',
+                    'cleaning' => 'Temizlik',
+                    'appliance' => 'Beyaz Eşya',
+                    'computer' => 'Bilgisayar',
+                    'phone' => 'Telefon',
+                    'other' => 'Diğer'
+                ];
+                
+                // Priority names in Turkish
+                $priorityNames = [
+                    'low' => 'Düşük',
+                    'medium' => 'Orta',
+                    'high' => 'Yüksek',
+                    'urgent' => 'Acil'
+                ];
+                
                 return [
                     'id' => $request->id,
                     'title' => $request->title,
                     'description' => $request->description,
                     'service_type' => $request->service_type,
+                    'service_type_name' => $serviceTypeNames[$request->service_type] ?? 'Diğer',
                     'status' => $request->status,
                     'priority' => $request->priority,
+                    'priority_name' => $priorityNames[$request->priority] ?? 'Orta',
                     'address' => $request->address,
                     'city' => $request->city,
                     'district' => $request->district,
@@ -408,11 +429,14 @@ class ServiceController extends Controller
                     'longitude' => $request->longitude,
                     'budget_min' => $request->budget_min,
                     'budget_max' => $request->budget_max,
+                    'preferred_date' => $request->preferred_date,
+                    'preferred_time' => $request->preferred_time,
                     'cancellation_reason' => $request->cancellation_reason,
                     'cancelled_at' => $request->cancelled_at,
                     'completed_at' => $request->completed_at,
                     'created_at' => $request->created_at,
                     'updated_at' => $request->updated_at,
+                    'images' => $request->images,
                     'service_provider' => $serviceProviderData,
                 ];
             });

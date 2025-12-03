@@ -71,6 +71,38 @@ class AdminController extends Controller
     }
 
     /**
+     * Validate admin token
+     */
+    public function validateToken(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user || !$user->isAdmin()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid admin token'
+                ], 401);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Token is valid',
+                'data' => [
+                    'user' => $user
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token validation failed',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get admin dashboard statistics
      */
     public function dashboard(Request $request)
@@ -227,7 +259,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Approve service provider
+     * Approve service provider (başvuruyu onayla)
      */
     public function approveServiceProvider(Request $request, $providerId)
     {
@@ -261,6 +293,12 @@ class AdminController extends Controller
                 'status' => User::STATUS_ACTIVE,
             ]);
 
+            \Log::info('Service provider approved', [
+                'provider_id' => $providerId,
+                'company_name' => $serviceProvider->company_name,
+                'admin_id' => $user->id
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Service provider approved successfully',
@@ -268,6 +306,11 @@ class AdminController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Failed to approve service provider', [
+                'provider_id' => $providerId,
+                'error' => $e->getMessage()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to approve service provider',
@@ -277,7 +320,7 @@ class AdminController extends Controller
     }
 
     /**
-     * Reject service provider
+     * Reject service provider (başvuruyu reddet)
      */
     public function rejectServiceProvider(Request $request, $providerId)
     {
@@ -291,8 +334,9 @@ class AdminController extends Controller
                 ], 403);
             }
 
+            // Reason is optional for now
             $validator = Validator::make($request->all(), [
-                'reason' => 'required|string|max:500',
+                'reason' => 'nullable|string|max:500',
             ]);
 
             if ($validator->fails()) {
@@ -315,12 +359,19 @@ class AdminController extends Controller
             // Update service provider status
             $serviceProvider->update([
                 'status' => ServiceProvider::STATUS_SUSPENDED,
-                'rejection_reason' => $request->reason,
+                'rejection_reason' => $request->reason ?? 'Başvuru admin tarafından reddedildi',
             ]);
 
             // Update user status
             $serviceProvider->user->update([
-                'status' => User::STATUS_SUSPENDED,
+                'status' => User::STATUS_INACTIVE,
+            ]);
+
+            \Log::info('Service provider rejected', [
+                'provider_id' => $providerId,
+                'company_name' => $serviceProvider->company_name,
+                'admin_id' => $user->id,
+                'reason' => $request->reason
             ]);
 
             return response()->json([
@@ -330,6 +381,11 @@ class AdminController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            \Log::error('Failed to reject service provider', [
+                'provider_id' => $providerId,
+                'error' => $e->getMessage()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to reject service provider',
@@ -423,29 +479,48 @@ class AdminController extends Controller
                 ], 403);
             }
 
-            $query = ServiceRequest::with(['customer', 'serviceProvider']);
+            // Get pending service providers (başvurular)
+            $query = ServiceProvider::with('user');
 
-            // Filter by status
-            if ($request->status) {
-                $query->where('status', $request->status);
-            }
+            // Filter by status - default to pending
+            $status = $request->status ?? ServiceProvider::STATUS_PENDING;
+            $query->where('status', $status);
 
             // Filter by service type
             if ($request->service_type) {
                 $query->where('service_type', $request->service_type);
             }
 
-            $requests = $query->orderBy('created_at', 'desc')
+            $providers = $query->orderBy('created_at', 'desc')
                 ->paginate($request->per_page ?? 20);
+
+            // Transform data for frontend
+            $transformedData = $providers->getCollection()->map(function ($provider) {
+                return [
+                    'id' => $provider->id,
+                    'company_name' => $provider->company_name,
+                    'service_type' => $provider->service_type,
+                    'description' => $provider->description,
+                    'address' => $provider->address,
+                    'city' => $provider->city,
+                    'district' => $provider->district,
+                    'phone' => $provider->user->phone ?? null,
+                    'email' => $provider->user->email ?? null,
+                    'working_hours' => $provider->working_hours,
+                    'status' => $provider->status,
+                    'created_at' => $provider->created_at,
+                    'updated_at' => $provider->updated_at,
+                ];
+            });
 
             return response()->json([
                 'success' => true,
-                'data' => $requests->items(),
+                'data' => $transformedData,
                 'pagination' => [
-                    'current_page' => $requests->currentPage(),
-                    'last_page' => $requests->lastPage(),
-                    'per_page' => $requests->perPage(),
-                    'total' => $requests->total(),
+                    'current_page' => $providers->currentPage(),
+                    'last_page' => $providers->lastPage(),
+                    'per_page' => $providers->perPage(),
+                    'total' => $providers->total(),
                 ]
             ]);
 

@@ -36,6 +36,7 @@ class AuthController extends Controller
             'password' => 'Şifre',
             'password_confirmation' => 'Şifre Tekrarı',
             'role' => 'Rol',
+            'company_name' => 'Firma Adı',
             'service_type' => 'Hizmet Türü',
             'description' => 'Açıklama',
         ];
@@ -79,6 +80,7 @@ class AuthController extends Controller
                 'phone' => 'nullable|string|unique:users,phone',
                 'password' => 'required|string|min:6|confirmed',
                 'role' => 'required|in:customer,service',
+                'company_name' => 'required_if:role,service|string|max:255',
                 'service_type' => 'required_if:role,service|string',
                 'description' => 'nullable|string',
             ]);
@@ -113,8 +115,10 @@ class AuthController extends Controller
             if ($request->role === 'service') {
                 ServiceProvider::create([
                     'user_id' => $user->id,
+                    'company_name' => $request->company_name,
                     'service_type' => $request->service_type,
                     'description' => $request->description,
+                    'phone' => $request->phone, // Store phone in service provider too
                     'status' => ServiceProvider::STATUS_PENDING,
                 ]);
             } else {

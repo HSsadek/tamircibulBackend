@@ -33,6 +33,7 @@ Route::prefix('admin')->group(function () {
     Route::post('/login', [AdminController::class, 'login']);
     
     Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/validate-token', [AdminController::class, 'validateToken']);
         Route::get('/dashboard', [AdminController::class, 'dashboard']);
         Route::get('/users', [AdminController::class, 'getUsers']);
         Route::get('/service-providers/pending', [AdminController::class, 'getPendingServiceProviders']);
