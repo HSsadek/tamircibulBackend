@@ -10,35 +10,63 @@ class AIChatController extends Controller
 {
     public function chat(Request $request)
     {
-        $userMessage = $request->input('message');
-
-        $client = new Client();
         try {
+            $userMessage = $request->input('message');
+            
+            if (!$userMessage) {
+                return response()->json([
+                    'reply' => "❌ Mesaj boş olamaz."
+                ], 400);
+            }
+
+            $apiKey = env('GEMINI_API_KEY');
+            if (!$apiKey) {
+                return response()->json([
+                    'reply' => "❌ API anahtarı bulunamadı."
+                ], 500);
+            }
+
+            $client = new Client([
+                'timeout' => 30,
+                'connect_timeout' => 10
+            ]);
+            
             $response = $client->post(
-                'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+                'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . $apiKey,
                 [
                     'headers' => [
-                        'Content-Type'  => 'application/json',
-                        'X-goog-api-key' => env('GEMINI_API_KEY'), // API key header olarak gönderiliyor
+                        'Content-Type' => 'application/json',
                     ],
                     'json' => [
                         'contents' => [
-                            ['parts' => [['text' => $userMessage]]]
+                            [
+                                'parts' => [
+                                    [
+                                        'text' => "Sen TamirciBul platformunun AI asistanısın. Kullanıcılara tamir ve hizmet konularında yardımcı ol. Kısa ve net Türkçe cevaplar ver. Kullanıcı sorusu: " . $userMessage
+                                    ]
+                                ]
+                            ]
+                        ],
+                        'generationConfig' => [
+                            'temperature' => 0.7,
+                            'maxOutputTokens' => 300,
                         ]
                     ]
                 ]
             );
 
             $result = json_decode($response->getBody(), true);
-            $aiReply = $result['candidates'][0]['content']['parts'][0]['text'] ?? "❌ Yanıt alınamadı.";
+            $aiReply = $result['candidates'][0]['content']['parts'][0]['text'] ?? "Yanıt alınamadı.";
 
             return response()->json([
                 'reply' => $aiReply
             ]);
+            
         } catch (\Exception $e) {
+            \Log::error('Gemini API Error: ' . $e->getMessage());
+            
             return response()->json([
-                'reply' => "❌ AI servisine bağlanırken hata oluştu.",
-                'error' => $e->getMessage()
+                'reply' => "❌ AI servisinde hata: " . $e->getMessage()
             ], 500);
         }
     }

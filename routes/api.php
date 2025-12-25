@@ -20,7 +20,7 @@ use App\Http\Controllers\Api\AIChatController;
 */
 
 
-Route::post('/ai/chat', [AIChatController::class, 'chat']);
+Route::post('/ai/chat', [AIChatController::class, 'chat'])->middleware('throttle:10,1'); // 1 dakikada 10 istek
 
 // Public routes
 Route::prefix('auth')->group(function () {
