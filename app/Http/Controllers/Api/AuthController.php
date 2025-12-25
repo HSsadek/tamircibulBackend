@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\ServiceProvider;
 use App\Models\Customer;
+use App\Models\PasswordResetToken;
+use App\Mail\PasswordResetMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -457,6 +460,225 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update notification preferences',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Send password reset email
+     */
+    public function sendPasswordResetEmail(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+                'user_type' => 'sometimes|in:customer,service_provider'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'E-posta adresi geçerli değil',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $email = $request->email;
+            $userType = $request->user_type ?? 'customer';
+
+            // Find user by email
+            $user = User::where('email', $email)->first();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bu e-posta adresi ile kayıtlı kullanıcı bulunamadı'
+                ], 404);
+            }
+
+            // Check user type matches
+            if ($userType === 'service_provider' && !$user->isServiceProvider()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bu e-posta adresi servis sağlayıcı hesabı ile eşleşmiyor'
+                ], 404);
+            }
+
+            if ($userType === 'customer' && !$user->isCustomer()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Bu e-posta adresi müşteri hesabı ile eşleşmiyor'
+                ], 404);
+            }
+
+            // Delete existing tokens for this email
+            PasswordResetToken::where('email', $email)->where('user_type', $userType)->delete();
+
+            // Generate plain token for URL
+            $plainToken = bin2hex(random_bytes(32));
+            
+            // Store hashed version in database
+            PasswordResetToken::create([
+                'email' => $email,
+                'token' => hash('sha256', $plainToken),
+                'user_type' => $userType,
+                'expires_at' => now()->addHours(1)
+            ]);
+
+            // Create reset URL (use frontend URL)
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:3000');
+            $resetUrl = $frontendUrl . "/#/reset-password?token={$plainToken}&email={$email}&type={$userType}";
+
+            // Send email
+            Mail::to($email)->send(new PasswordResetMail($resetUrl, $user->name));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Şifre sıfırlama linki e-posta adresinize gönderildi'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Password reset email error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'E-posta gönderilirken bir hata oluştu',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset password with token
+     */
+    public function resetPassword(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+                'token' => 'required|string',
+                'password' => 'required|string|min:6|confirmed',
+                'user_type' => 'sometimes|in:customer,service_provider'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Girilen bilgiler geçersiz',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $email = $request->email;
+            $token = $request->token;
+            $userType = $request->user_type ?? 'customer';
+
+            // Find and validate token
+            $resetToken = PasswordResetToken::findValidToken($email, $token, $userType);
+
+            if (!$resetToken) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Şifre sıfırlama linki geçersiz veya süresi dolmuş'
+                ], 400);
+            }
+
+            // Find user
+            $user = User::where('email', $email)->first();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kullanıcı bulunamadı'
+                ], 404);
+            }
+
+            // Update password
+            $user->update([
+                'password' => Hash::make($request->password)
+            ]);
+
+            // Delete used token
+            $resetToken->delete();
+
+            // Delete all other tokens for this user
+            PasswordResetToken::where('email', $email)->where('user_type', $userType)->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Şifreniz başarıyla güncellendi'
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Password reset error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Şifre sıfırlama işlemi başarısız oldu',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify password reset token
+     */
+    public function verifyResetToken(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'email' => 'required|email',
+                'token' => 'required|string',
+                'user_type' => 'sometimes|in:customer,service_provider'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Geçersiz parametreler',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $email = $request->email;
+            $token = $request->token;
+            $userType = $request->user_type ?? 'customer';
+
+            // Find and validate token
+            $resetToken = PasswordResetToken::findValidToken($email, $token, $userType);
+
+            if (!$resetToken) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Şifre sıfırlama linki geçersiz veya süresi dolmuş'
+                ], 400);
+            }
+
+            // Find user
+            $user = User::where('email', $email)->first();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Kullanıcı bulunamadı'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Token geçerli',
+                'data' => [
+                    'user_name' => $user->name,
+                    'email' => $email,
+                    'expires_at' => $resetToken->expires_at
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token doğrulama hatası',
                 'error' => $e->getMessage()
             ], 500);
         }

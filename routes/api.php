@@ -26,6 +26,9 @@ Route::post('/ai/chat', [AIChatController::class, 'chat']);
 Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/password/forgot', [AuthController::class, 'sendPasswordResetEmail']);
+    Route::post('/password/reset', [AuthController::class, 'resetPassword']);
+    Route::post('/password/verify-token', [AuthController::class, 'verifyResetToken']);
 });
 
 // Admin routes
