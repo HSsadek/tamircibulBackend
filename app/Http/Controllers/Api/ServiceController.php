@@ -94,7 +94,9 @@ class ServiceController extends Controller
             if ($request->has('lat') && $request->has('lng') && $request->has('radius')) {
                 $lat = $request->lat;
                 $lng = $request->lng;
-                $radius = $request->radius ?? 50; // Default 50km radius
+                $radius = $request->radius ?? 10; // Default 10km radius for local results
+                
+                \Log::info("Location filtering: lat=$lat, lng=$lng, radius={$radius}km");
                 
                 // Use Haversine formula for distance calculation
                 $query->selectRaw("
@@ -103,6 +105,8 @@ class ServiceController extends Controller
                 ", [$lat, $lng, $lat])
                 ->having('distance', '<=', $radius)
                 ->orderBy('distance');
+                
+                \Log::info("Applied location filter with {$radius}km radius");
             } else {
                 // Sort by rating or distance (if coordinates provided)
                 if ($request->sort === 'rating') {

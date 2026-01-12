@@ -119,7 +119,8 @@ class ComprehensiveSeeder extends Seeder
             'Konya' => ['Meram', 'Karatay', 'Selçuklu', 'Ereğli', 'Akşehir', 'Beyşehir', 'Cihanbeyli', 'Kulu'],
             'Gaziantep' => ['Şahinbey', 'Şehitkamil', 'Oğuzeli', 'Nizip', 'Nurdağı', 'Araban', 'Yavuzeli', 'Karkamış'],
             'Kayseri' => ['Melikgazi', 'Kocasinan', 'Talas', 'İncesu', 'Develi', 'Yahyalı', 'Tomarza', 'Sarıoğlan'],
-            'Eskişehir' => ['Odunpazarı', 'Tepebaşı', 'Çifteler', 'Mahmudiye', 'Mihalıççık', 'Sarıcakaya', 'Seyitgazi', 'Sivrihisar']
+            'Eskişehir' => ['Odunpazarı', 'Tepebaşı', 'Çifteler', 'Mahmudiye', 'Mihalıççık', 'Sarıcakaya', 'Seyitgazi', 'Sivrihisar'],
+            'Elazığ' => ['Merkez', 'Ağın', 'Alacakaya', 'Arıcak', 'Baskil', 'Karakoçan', 'Keban', 'Kovancılar']
         ];
 
         $serviceTypes = ['plumbing', 'electrical', 'cleaning', 'appliance', 'computer', 'phone', 'other'];
@@ -542,6 +543,7 @@ class ComprehensiveSeeder extends Seeder
             'Gaziantep' => ['min' => 37.0, 'max' => 37.2],
             'Kayseri' => ['min' => 38.7, 'max' => 38.9],
             'Eskişehir' => ['min' => 39.7, 'max' => 39.9],
+            'Elazığ' => ['min' => 38.6, 'max' => 38.8],
         ];
 
         $range = $coordinates[$city] ?? $coordinates['İstanbul'];
@@ -561,6 +563,7 @@ class ComprehensiveSeeder extends Seeder
             'Gaziantep' => ['min' => 37.3, 'max' => 37.5],
             'Kayseri' => ['min' => 35.4, 'max' => 35.6],
             'Eskişehir' => ['min' => 30.5, 'max' => 30.7],
+            'Elazığ' => ['min' => 39.1, 'max' => 39.4],
         ];
 
         $range = $coordinates[$city] ?? $coordinates['İstanbul'];
