@@ -12,7 +12,7 @@ Laravel backend API for the TamirciBul repair service platform.
 - **Review System**: Customer reviews and ratings
 - **Location-based Services**: City and district filtering
 
-## API Endpoints
+## API 
 
 ### Authentication
 - `POST /api/auth/register` - User registration
